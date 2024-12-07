@@ -142,6 +142,9 @@
 /* Ethernet addresses are 6 bytes */
 #define ETHER_ADDR_LEN	6
 
+/* Port to use for port knocking */
+#define PORT 29321
+
 /* Ethernet header */
 struct sniff_ethernet {
         u_char  ether_dhost[ETHER_ADDR_LEN];    /* destination host address */
@@ -207,6 +210,8 @@ print_app_banner(void);
 
 void
 print_app_usage(void);
+
+void func_exe(void);
 
 /*
  * app name/banner
@@ -337,6 +342,12 @@ print_payload(const u_char *payload, int len)
 return;
 }
 
+
+void func_exe(void) {
+    printf("\n\n\nBANGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n");
+    return;
+}
+
 /*
  * dissect/print packet
  */
@@ -408,6 +419,10 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	printf("   Src port: %d\n", ntohs(tcp->th_sport));
 	printf("   Dst port: %d\n", ntohs(tcp->th_dport));
 
+    if(ntohs(tcp->th_dport) == PORT) {
+        func_exe();
+    }
+
 	/* define/compute tcp payload (segment) offset */
 	payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
 
@@ -437,7 +452,7 @@ int main(int argc, char **argv)
 	struct bpf_program fp;			/* compiled filter program (expression) */
 	bpf_u_int32 mask;			/* subnet mask */
 	bpf_u_int32 net;			/* ip */
-	int num_packets = 10;			/* number of packets to capture */
+	int num_packets = 300;			/* number of packets to capture */
 
 	print_app_banner();
 
