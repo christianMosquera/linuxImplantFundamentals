@@ -1,0 +1,15 @@
+{
+  "files.associations": {
+    ".fantomasignore": "ignore",
+    "inet.h": "c",
+    "utils.h": "c",
+    "ifaddrs.h": "c",
+    "in.h": "c",
+    "socket.h": "c",
+    "types.h": "c",
+    "_param.h": "c",
+    "constrained_ctypes.h": "c",
+    "cdefs.h": "c",
+    "in6.h": "c"
+  }
+}
