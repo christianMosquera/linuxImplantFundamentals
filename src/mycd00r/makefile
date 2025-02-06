@@ -2,7 +2,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 LDFLAGS = -lpcap
-DEPS = utils.h
+DEPS = utils.h backdoor_utils.h
 
 # Target executable
 TARGET = sniffer
@@ -11,12 +11,12 @@ TARGET = sniffer
 SRC = sniffer.c
 
 # Object files
-OBJ = sniffer.o utils.o
+OBJ = sniffer.o utils.o backdoor_utils.o 
 
 all: sniffer
 
-sniffer: sniffer.o utils.o 
-	$(CC) -o sniffer sniffer.o utils.o $(LDFLAGS)
+sniffer: sniffer.o utils.o backdoor_utils.o
+	$(CC) -o sniffer sniffer.o utils.o backdoor_utils.o $(LDFLAGS)
 
 %.o: %.c $(DEPS)
 	$(CC) -c $< -o $@ $(CFLAGS)
