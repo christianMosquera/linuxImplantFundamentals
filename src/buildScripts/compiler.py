@@ -90,10 +90,6 @@ def get_arg_flags():
         arg_flags.append("-DSHELLCODE")
     if args.reverseShell:
         arg_flags.append("-DREVERSE_SHELL")
-    if args.reverseIP:
-        arg_flags.append("-DREVERSE_IP")
-    if args.reversePort:
-        arg_flags.append("-DREVERSE_PORT")
     if args.strip:
         arg_flags.append("-s")
     if args.key:
