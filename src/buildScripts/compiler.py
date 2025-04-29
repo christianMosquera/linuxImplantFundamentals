@@ -76,7 +76,7 @@ def get_arg_flags():
     if args.debug:
         arg_flags.append("-DDEBUG")
     if args.interface:
-        arg_flags.append("-DINTERFACE='\"" + args.interface + "\"'")
+        arg_flags.append("-DCDR_INTERFACE=\"" + args.interface + "\"")
     if args.ipAddress != "unknown":
         addrs = args.ipAddress.split(",")
         addrs = ['"' + s + '"' for s in addrs]
