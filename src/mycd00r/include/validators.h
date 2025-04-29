@@ -3,7 +3,6 @@
 
 #define IPV4_LOOPBACK_ADDR "127.0.0.1"
 #define IPV6_LOOPBACK_ADDR "::1"
-#define CORRECT_IP_LIST {"192.168.1.234", "192.168.1.0/24"} // not real ip
 #define IPV6_ADDR_LEN 16
 #define MAX_INTERFACE_LEN 16
 #define MAX_IP_LENGTH 45
@@ -14,10 +13,11 @@ typedef enum {
     ERR_IFADDR_FAILED = 2,
     ERR_NAMEINFO_FAILED = 3,
     ERR_NO_HOST_SPECS_MATCH = 4,
-} host_check_status_t;
+    ERR_IP_LIST_NOT_DEFINED = 5,
+} Validation_Status;
 
 typedef struct host_profile {
-    char host_ip[MAX_IP_LENGTH];
+    char host_ip[NI_MAXHOST];
     int family;
     char interface_name[MAX_INTERFACE_LEN];
 } host_profile;
@@ -29,7 +29,7 @@ typedef struct Profile {
     char *arch;
 } Profile;
 
-void uninstall();
+void uninstall(void);
 
 /**
  * @brief Determines if implant should be ran on current host.
@@ -40,9 +40,9 @@ void uninstall();
  * @retval ERR_IFADDR_FAILED -         Error retrieving interface addresses
  * @retval ERR_NAMEINFO_FAILED -       Error converting address to string
  */
-host_check_status_t check_if_host_is_correct(host_profile *host_info);
+Validation_Status check_if_host_is_correct(host_profile *host_info);
 
-void check_for_antivirus();
+void check_for_antivirus(void);
 
 /**
  * @brief Returns associated string for host check status
@@ -50,9 +50,9 @@ void check_for_antivirus();
  * @param status Status code returned by check_if_host_is_correct
  * 
  */
-const char *get_validator_status_message(host_check_status_t status);
+const char *get_validator_status_message(Validation_Status status);
 
-Profile *get_profile();
+Profile *get_profile(void);
 
 void free_profile(Profile **pProfile);
 

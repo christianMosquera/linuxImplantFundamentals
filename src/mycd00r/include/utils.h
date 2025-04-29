@@ -25,6 +25,4 @@ void signal_handler(int sig);
 
 void *smalloc(size_t size);
 
-void uninstall_program();
-
 #endif

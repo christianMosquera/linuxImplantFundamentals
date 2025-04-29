@@ -19,7 +19,3 @@ void *smalloc(size_t size) {
     memset(p,0,size);
     return p;
 }
-
-void uninstall_program() {
-    
-}
