@@ -6,7 +6,7 @@
 
 #define	CDR_BPF_PORT "port "
 #define CDR_BPF_ORCON " or "
-#define CDR_INTERFACE "wlp41s0"
+// #define CDR_INTERFACE "wlp41s0"
 #define CAPLENGTH	98
 #define ETHLENGTH 	14
 #define IP_MIN_LENGTH 	20

