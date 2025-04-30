@@ -3,6 +3,8 @@
 
 void bind_shell(void);
 
-void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds);
+void rev_shell(void);
+
+void download_exec(void);
 
 #endif

