@@ -90,6 +90,8 @@ def get_arg_flags():
         arg_flags.append("-DSHELLCODE")
     if args.reverseShell:
         arg_flags.append("-DREVERSE_SHELL")
+    if args.bindShell:
+        arg_flags.append("-DBIND_SHELL")
     if args.strip:
         arg_flags.append("-s")
     if args.key:
@@ -212,10 +214,16 @@ parser.add_argument(
     "-atkR", "--reverseShell", action="store_true", help="run a reverse shell"
 )
 parser.add_argument(
+    "-atkBs", "--bindShell", action="store_true", help="run a bind shell"
+)
+parser.add_argument(
     "-revip", "--reverseIP", type=str, metavar="", help="reverse shell IP"
 )
 parser.add_argument(
     "-revport", "--reversePort", type=str, metavar="", help="reverse shell Port"
+)
+parser.add_argument(
+    "-bport", "--bindPort", type=str, metavar="", help="bind shell Port"
 )
 parser.add_argument(
     "-per",
@@ -264,6 +272,8 @@ with open("log.csv", mode="a+") as log_file:
             "reverseShell",
             "reverseIP",
             "reversePort",
+            "bindShell",
+            "bindPort",
             "Notes",
             "debug",
             "outputName",
@@ -296,6 +306,8 @@ with open("log.csv", mode="a+") as log_file:
             str(args.reverseShell),
             str(args.reverseIP),
             str(args.reversePort),
+            str(args.bindShell),
+            str(args.bindPort),
             str(args.notes),
             str(args.debug),
             str(args.outputName),

