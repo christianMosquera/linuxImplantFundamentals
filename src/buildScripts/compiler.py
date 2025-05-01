@@ -32,25 +32,45 @@ def compile_c_file(source_file, output_file, cflags, argflags):
         if not os.path.exists(dir):
             make_dir(dir)
     
-    print(f"[+] Running: {' '.join(compile_command)}")
+    # print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
+    print(f"\033[92m[+]\033[0m building {output_file}")
     result = subprocess.run(compile_command, capture_output=True, text=True)
 
-    if result.returncode != 0:
-        print(f"[!] Error compiling {source_file}:")
-        print(result.stderr)
-        return False
-    
+    if result.returncode != 0 or result.stdout or result.stderr:
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            stderr_lines = result.stderr.splitlines()
+            warnings = [line for line in stderr_lines if "warning:" in line.lower()]
+            errors = [line for line in stderr_lines if "error:" in line.lower()]
+
+            if warnings:
+                print(f"  \033[93m[*]\033[0m Warnings in {source_file}:")
+                for warning in warnings:
+                    print(f"  {warning}")
+
+            if errors:
+                print(f"  \033[91m[!]\033[0m Errors in {source_file}:")
+                for error in errors:
+                    print(f"  {error}")
+                return False
+
     return True
 
 def link_object_files(object_files, ldflags):
     compile_command = ["gcc", "-o", IMPLANT_DIR + args.outputName] + object_files + ldflags
-    print(f"[+] Running: {' '.join(compile_command)}")
+    # print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
+    print(f"\033[92m[+]\033[0m building: {args.outputName} in {IMPLANT_DIR}")
     result = subprocess.run(compile_command, capture_output=True, text=True)
 
-    if result.returncode != 0:
-        print(f"[!] Error compiling {args.outputName}:")
-        print(result.stderr)
-        return False
+    if result.returncode != 0 or result.stdout or result.stderr:
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        if result.returncode != 0:
+            print(f"[!] Error compiling {args.outputName}")
+            return False
     
     return True
 

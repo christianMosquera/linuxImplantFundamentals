@@ -4,7 +4,6 @@
 
 
 int main(void) {
-	char *arg = NULL;
 	host_profile host_info;
 	Validation_Status s;
 

