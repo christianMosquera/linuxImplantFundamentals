@@ -156,6 +156,11 @@ def clean():
             print(f"Error: Directory '{dir}' not found.")
         except OSError as e:
             print(f"Error: {e}")
+    try:
+        os.remove(IMPLANT_DIR + args.outputName)
+        print(f"{args.outputName} deleted")
+    except:
+        print(f"{args.outputName} file not found")
 
 parser = argparse.ArgumentParser(
     "python compiler.py",
@@ -263,12 +268,13 @@ parser.add_argument("-clean", "--clean", action="store_true", help="clean build 
 
 args = parser.parse_args()
 
+file_exists = os.path.exists("log.csv")
+
 with open("log.csv", mode="a+") as log_file:
-    file_exists = 1
     log_writer = csv.writer(
         log_file, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL
     )
-    if file_exists != 1:
+    if not file_exists:
         fieldnamesList = [
             "datetime",
             "ipAddress",
