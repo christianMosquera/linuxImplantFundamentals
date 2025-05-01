@@ -64,15 +64,6 @@ void create_deamon_process() {
 #if (!defined(CDR_PORTS) || !defined(CDR_PORTS_SIZE) || !defined(PORT_KNOCK_LIST)) && !defined(MAGIC_PORT_STRING)
     #ifdef DEBUG
         fprintf(stderr, "No activation method selected\n");
-        #if !defined(CDR_PORTS)
-            fprintf(stderr, "CDR_PORTS not defined, add -key <ports>\n");
-        #endif
-        #if !defined(CDR_PORTS_SIZE)
-            fprintf(stderr, "CDR_PORTS_SIZE not defined, add -size <num of ports>\n");
-        #endif
-        #if !defined(PORT_KNOCK_LIST)
-            fprintf(stderr, "PORT_KNOCK_LIST not defined, add -act PORT_KNOCK_LIST\n");
-        #endif
     #endif
     exit(EXIT_FAILURE);
 #endif

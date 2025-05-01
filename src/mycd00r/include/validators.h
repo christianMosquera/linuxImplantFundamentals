@@ -6,6 +6,7 @@
 #define IPV6_ADDR_LEN 16
 #define MAX_INTERFACE_LEN 16
 #define MAX_IP_LENGTH 45
+#define PATH_SIZE 4096
 
 typedef enum {
     CORRECT_HOST = 0,

