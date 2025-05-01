@@ -1,4 +1,5 @@
 # mycd00r Directory
+Use compiler in the buildScripts directory
 
 ## encrypt/
 This was an attempt to encrypt the executable based on a profile of the target machine that we want to execute on. It is not finished and has been moved to the sideline for now.
