@@ -58,6 +58,8 @@ def compile_c_file(source_file, output_file, cflags, argflags):
     return True
 
 def link_object_files(object_files, ldflags):
+    if args.strip:
+        ldflags.append("-s")
     compile_command = ["gcc", "-o", IMPLANT_DIR + args.outputName] + object_files + ldflags
     # print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
     print(f"\033[92m[+]\033[0m building: {args.outputName} in {IMPLANT_DIR}")
@@ -112,8 +114,6 @@ def get_arg_flags():
         arg_flags.append("-DREVERSE_SHELL")
     if args.bindShell:
         arg_flags.append("-DBIND_SHELL")
-    if args.strip:
-        arg_flags.append("-s")
     if args.key:
         if args.activate == "PORT_KNOCK_LIST":
             arg_flags.append("-DCDR_PORTS={" + args.key + "}")

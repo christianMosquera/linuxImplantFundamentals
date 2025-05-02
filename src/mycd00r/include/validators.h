@@ -45,6 +45,7 @@ Validation_Status check_if_host_is_correct(host_profile *host_info);
 
 void check_for_antivirus(void);
 
+#ifdef DEBUG
 /**
  * @brief Returns associated string for host check status
  * 
@@ -52,6 +53,7 @@ void check_for_antivirus(void);
  * 
  */
 const char *get_validator_status_message(Validation_Status status);
+#endif
 
 Profile *get_profile(void);
 

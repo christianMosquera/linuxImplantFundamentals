@@ -277,9 +277,9 @@ void check_for_antivirus() {
     // return;
 }
 
-
-const char *get_validator_status_message(Validation_Status status) {
 #ifdef DEBUG
+const char *get_validator_status_message(Validation_Status status) {
+
     switch (status) {
         case CORRECT_HOST:
             return "Host is correct";
@@ -294,5 +294,5 @@ const char *get_validator_status_message(Validation_Status status) {
         default:
             return "Unknown error";
     }
-#endif
 }
+#endif
