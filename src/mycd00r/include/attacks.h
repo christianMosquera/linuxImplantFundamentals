@@ -7,4 +7,6 @@ void rev_shell(void);
 
 void download_exec(void);
 
+void beacon(void);
+
 #endif

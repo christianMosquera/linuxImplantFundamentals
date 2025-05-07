@@ -26,13 +26,14 @@ def make_dir(dir):
 
 
 def compile_c_file(source_file, output_file, cflags, argflags):
-    compile_command = ["gcc", "-o", output_file, "-c", source_file] + cflags + argflags
+
+    compile_command = ["gcc"] + cflags + ["-o", output_file, "-c", source_file] + argflags
 
     for dir in BUILD_DIRS:
         if not os.path.exists(dir):
             make_dir(dir)
     
-    # print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
+    print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
     print(f"\033[92m[+]\033[0m building {output_file}")
     result = subprocess.run(compile_command, capture_output=True, text=True)
 
@@ -58,10 +59,13 @@ def compile_c_file(source_file, output_file, cflags, argflags):
     return True
 
 def link_object_files(object_files, ldflags):
+    cflags = []
     if args.strip:
-        ldflags.append("-s")
-    compile_command = ["gcc", "-o", IMPLANT_DIR + args.outputName] + object_files + ldflags
-    # print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
+        cflags.append("-s")
+    if args.debug:
+        cflags.append("-g")
+    compile_command = ["gcc"] + cflags + ["-o", IMPLANT_DIR + args.outputName] + object_files + ldflags
+    print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
     print(f"\033[92m[+]\033[0m building: {args.outputName} in {IMPLANT_DIR}")
     result = subprocess.run(compile_command, capture_output=True, text=True)
 
@@ -129,6 +133,8 @@ def get_arg_flags():
         arg_flags.append("-DREVERSE_PORT=" + args.reversePort)
     if args.timeDelay:
         arg_flags.append("-DDELAY_TIME=" + args.timeDelay)
+    if args.trigger:
+        arg_flags.append("-DTRIGGER=\"" + args.trigger + "\"")
 
     return arg_flags
 
@@ -136,6 +142,8 @@ def build():
     code_files = get_code_files()
     object_files = get_object_files(code_files)
     CFLAGS = ["-Wall"] + ["-I" + s for s in INCLUDE_DIR]
+    if args.debug:
+        CFLAGS.append("-g")
     LDFLAGS = ["-lcrypto", "-lssl", "-lpcap", "-lcurl"]
     arg_flags = get_arg_flags()
 
