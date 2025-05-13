@@ -1,6 +1,7 @@
 #include "backdoor_utils.h"
 #include "utils.h"
 #include "../include/attacks.h"
+#include "options.h"
 
 #include <stdio.h>
 #include <sys/types.h>
