@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "validators.h"
 #include "attacks.h"
+#include "options.h"
 
 
 int main(void) {

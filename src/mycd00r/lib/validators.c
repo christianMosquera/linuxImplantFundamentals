@@ -12,6 +12,7 @@
 
 #include "validators.h"
 #include "utils.h"
+#include "options.h"
 
 // const char* KNOWN_AV_LIST[] = {"XProtect", "avast", "avg", "kaspersky", "defender"};
 // const int KNOWN_AV_NUM = 5;

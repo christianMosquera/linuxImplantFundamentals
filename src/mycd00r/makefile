@@ -1,32 +1,3 @@
-# Compiler and flags
-# CC = gcc
-# CFLAGS = -Wall -g
-# LDFLAGS = -lpcap -lssl -lcrypto
-# DEPS = utils.h backdoor_utils.h validators.h
-
-# # Target executable
-# TARGET = sniffer
-
-# # Source files
-# SRC = sniffer.c
-
-# # Object files
-# OBJ = sniffer.o utils.o backdoor_utils.o validators.o
-
-# all: $(TARGET)
-
-# $(TARGET): $(OBJ)
-# 	$(CC) -o sniffer $(OBJ) $(LDFLAGS)
-
-# %.o: %.c $(DEPS)
-# 	$(CC) -c $< -o $@ $(CFLAGS)
-
-# clean:
-# 	rm -f $(OBJ) $(TARGET)
-
-# .PHONY: all clean
-
-
 TARGET = sniffer
 BUILD_DIR = build
 CODEDIRS = . lib
@@ -35,7 +6,7 @@ INCDIRS = . ./include/
 DEPFLAGS = -MP -MD
 CC = gcc
 CFLAGS = -Wall $(foreach D,$(INCDIRS),-I$(D)) $(DEPFLAGS)
-LDFLAGS = -lpcap -lssl -lcrypto
+LDFLAGS = -lpcap -lssl -lcrypto -lcurl
 
 CFILES = $(foreach D,$(CODEDIRS),$(wildcard $(D)/*.c))
 OBJECTS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(CFILES))
